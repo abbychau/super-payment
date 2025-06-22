@@ -1,4 +1,4 @@
-# Super Payment-kun.com REST API
+# Super Payment Kun Backend
 
 A Go-based REST API for a fictional corporate payment service that allows users to register invoice data for future payment processing with automatic bank transfers.
 
@@ -10,7 +10,6 @@ A Go-based REST API for a fictional corporate payment service that allows users 
 - **Invoice Management**: Create and manage invoices with automatic fee calculation
 - **Automatic Calculations**: 4% service fee + 10% consumption tax on fees
 - **Date-based Filtering**: Retrieve invoices within specified periods
-- **Security**: Password hashing, JWT tokens, and proper authorization
 
 ## Folder Structure
 
@@ -23,13 +22,13 @@ super-payment/
 │   ├── api/             # HTTP handlers and routing
 │   ├── config/          # Configuration management
 │   ├── middleware/      # HTTP middleware (auth, CORS, logging)
-│   ├── models/          # Data models and DTOs
+│   ├── models/          # Data models structs
 │   ├── repository/      # Data access layer
 │   └── service/         # Business logic layer
-├── migrations/          # Database migration scripts
-├── tests/               # Test files
-├── go.mod              # Go module dependencies
-└── README.md           # This file
+├── migrations/           # Database DDL and DML (test data included)
+├── tests/                # Test files
+├── go.mod                # Go module dependencies
+└── README.md             # This file
 ```
 
 ## API Endpoints
@@ -48,7 +47,7 @@ Live Version: [OpenAPI Spec](./api-docs.yaml)
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/abbymorgan/super-payment.git
 cd super-payment
 ```
 
@@ -203,7 +202,7 @@ Invoice Amount: 100,000 + 4,000 + 400 = 104,400
 
 Live Version: [models.go](internal/models/models.go)
 
-## Testing
+## Tests
 
 Run the test suite:
 
@@ -248,3 +247,8 @@ Success responses follow this format:
 }
 ```
 
+## Production Deployment Information
+
+Use Docker image registry: `https://hub.docker.com/r/abbychau/super-payment`
+
+The above is built from `main` branch using GitHub Actions. Environment variables should be referred to the `.env.example` file.
