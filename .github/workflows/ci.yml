@@ -42,6 +42,8 @@ jobs:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
+          ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          ${{ runner.os }}-go-${{ hashFiles('**/go.mod') }}
           ${{ runner.os }}-go-
 
     - name: Download dependencies
@@ -50,9 +52,24 @@ jobs:
     - name: Verify dependencies
       run: go mod verify
 
+    - name: Install MySQL client
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mysql-client
+
+    - name: Wait for MySQL to be ready
+      run: |
+        while ! mysqladmin ping -h 127.0.0.1 -P 3306 -u root -prootpassword --silent; do
+          echo "Waiting for MySQL to be ready..."
+          sleep 2
+        done
+        echo "MySQL is ready!"
+
     - name: Set up test database
       run: |
+        mysql -h 127.0.0.1 -P 3306 -u root -prootpassword -e "CREATE DATABASE IF NOT EXISTS super_payment_test;"
         mysql -h 127.0.0.1 -P 3306 -u root -prootpassword super_payment_test < migrations/001_create_tables.sql
+        mysql -h 127.0.0.1 -P 3306 -u root -prootpassword super_payment_test < migrations/002_insert_sample_data.sql
 
     - name: Run tests
       env:

@@ -32,20 +32,8 @@ type APITestSuite struct {
 
 // SetupSuite sets up the test suite
 func (suite *APITestSuite) SetupSuite() {
-	// Load test configuration
-	cfg := &config.Config{
-		Database: config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     "3306",
-			User:     "app_user",
-			Password: "app_password",
-			Name:     "super_payment",
-		},
-		JWT: config.JWTConfig{
-			Secret:      "your-super-secret-jwt-key-change-in-production",
-			ExpiryHours: 24,
-		},
-	}
+	// Load test configuration from environment variables
+	cfg := config.Load()
 
 	// Initialize repository (you might want to use a test database or mock)
 	repo, err := repository.NewMySQLRepository(cfg.GetDSN())
