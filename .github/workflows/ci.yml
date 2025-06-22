@@ -148,7 +148,7 @@ jobs:
         CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-w -s' -o super-payment cmd/server/main.go
 
     - name: Upload build artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: super-payment-binary
         path: super-payment
