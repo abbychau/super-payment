@@ -1,0 +1,573 @@
+openapi: 3.0.3
+info:
+  title: Super Payment-kun.com API
+  description: |
+    REST API for Super Payment-kun.com - A corporate payment service that allows users to register invoice data for future payment processing with automatic bank transfers.
+    
+    ## Features
+    - User authentication with JWT
+    - Company and business partner management
+    - Invoice creation with automatic fee calculation (4% + 10% consumption tax)
+    - Date-based invoice filtering
+    - Multi-tenant architecture
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@superpayment.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.superpayment.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Invoices
+    description: Invoice management operations
+  - name: Business Partners
+    description: Business partner management
+  - name: Health
+    description: Health check endpoint
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the API is running
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  service:
+                    type: string
+                    example: super-payment-api
+
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register user and company
+      description: Register a new user along with their company information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - company
+                - user
+              properties:
+                company:
+                  $ref: '#/components/schemas/Company'
+                user:
+                  $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: User and company registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and return JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/invoices:
+    post:
+      tags:
+        - Invoices
+      summary: Create invoice
+      description: Create a new invoice with automatic fee calculation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvoiceRequest'
+      responses:
+        '200':
+          description: Invoice created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Invoice'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Invoices
+      summary: Get invoices
+      description: Retrieve invoices with optional filtering
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          description: Filter invoices from this date
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          description: Filter invoices until this date
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          description: Filter by invoice status
+          schema:
+            type: string
+            enum: [unprocessed, processing, paid, error]
+        - name: page
+          in: query
+          description: Page number (default: 1)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Items per page (default: 20, max: 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Invoices retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Invoice'
+
+  /api/invoices/{id}:
+    get:
+      tags:
+        - Invoices
+      summary: Get invoice by ID
+      description: Retrieve a specific invoice by its ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Invoice ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Invoice retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Invoice'
+        '404':
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/business-partners:
+    post:
+      tags:
+        - Business Partners
+      summary: Create business partner
+      description: Create a new business partner
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessPartner'
+      responses:
+        '201':
+          description: Business partner created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BusinessPartner'
+
+    get:
+      tags:
+        - Business Partners
+      summary: Get business partners
+      description: Retrieve all business partners for the user's company
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Business partners retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BusinessPartner'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Company:
+      type: object
+      required:
+        - corporate_name
+        - representative
+        - phone_number
+        - postal_code
+        - address
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        corporate_name:
+          type: string
+          maxLength: 255
+          example: "Tech Solutions Inc."
+        representative:
+          type: string
+          maxLength: 255
+          example: "John Smith"
+        phone_number:
+          type: string
+          maxLength: 20
+          example: "03-1234-5678"
+        postal_code:
+          type: string
+          maxLength: 10
+          example: "100-0001"
+        address:
+          type: string
+          example: "Tokyo, Chiyoda-ku, Chiyoda 1-1-1"
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        company_id:
+          type: integer
+          format: int64
+        full_name:
+          type: string
+          maxLength: 255
+          example: "Alice Johnson"
+        email:
+          type: string
+          format: email
+          example: "alice@techsolutions.com"
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        company:
+          $ref: '#/components/schemas/Company'
+
+    UserRegistration:
+      type: object
+      required:
+        - full_name
+        - email
+        - password
+      properties:
+        full_name:
+          type: string
+          maxLength: 255
+          example: "Alice Johnson"
+        email:
+          type: string
+          format: email
+          example: "alice@techsolutions.com"
+        password:
+          type: string
+          minLength: 8
+          example: "securepassword123"
+
+    BusinessPartner:
+      type: object
+      required:
+        - corporate_name
+        - representative
+        - phone_number
+        - postal_code
+        - address
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        company_id:
+          type: integer
+          format: int64
+          readOnly: true
+        corporate_name:
+          type: string
+          maxLength: 255
+          example: "Supplier A Ltd."
+        representative:
+          type: string
+          maxLength: 255
+          example: "Michael Brown"
+        phone_number:
+          type: string
+          maxLength: 20
+          example: "03-1111-2222"
+        postal_code:
+          type: string
+          maxLength: 10
+          example: "101-0001"
+        address:
+          type: string
+          example: "Tokyo, Chiyoda-ku, Marunouchi 1-1-1"
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+        company_id:
+          type: integer
+          format: int64
+          readOnly: true
+        business_partner_id:
+          type: integer
+          format: int64
+        issue_date:
+          type: string
+          format: date
+        payment_amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 100000.00
+        fee:
+          type: number
+          format: double
+          readOnly: true
+          example: 4000.00
+        fee_rate:
+          type: number
+          format: double
+          readOnly: true
+          example: 0.04
+        consumption_tax:
+          type: number
+          format: double
+          readOnly: true
+          example: 400.00
+        consumption_tax_rate:
+          type: number
+          format: double
+          readOnly: true
+          example: 0.10
+        invoice_amount:
+          type: number
+          format: double
+          readOnly: true
+          example: 104400.00
+        payment_due_date:
+          type: string
+          format: date
+          example: "2024-12-31"
+        status:
+          type: string
+          enum: [unprocessed, processing, paid, error]
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        company:
+          $ref: '#/components/schemas/Company'
+        business_partner:
+          $ref: '#/components/schemas/BusinessPartner'
+
+    CreateInvoiceRequest:
+      type: object
+      required:
+        - business_partner_id
+        - payment_amount
+        - payment_due_date
+      properties:
+        business_partner_id:
+          type: integer
+          format: int64
+          example: 1
+        payment_amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 100000.00
+        payment_due_date:
+          type: string
+          format: date-time
+          example: "2024-12-31T00:00:00Z"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "alice@techsolutions.com"
+        password:
+          type: string
+          example: "securepassword123"
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user:
+          $ref: '#/components/schemas/User'
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "validation_error"
+        message:
+          type: string
+          example: "Invalid input data"
